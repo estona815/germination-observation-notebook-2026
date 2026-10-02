@@ -1,5 +1,7 @@
 # Germination Notebook
 
+**Public deployment verified October 3, 2026 (KST):** [live synthetic demo](https://estona815.github.io/germination-observation-notebook-2026/) and [source repository](https://github.com/estona815/germination-observation-notebook-2026). See [the deployment record and actual screenshot](DEPLOYMENT_STATUS.md) for the current checks. Export-preparation statements below describe the earlier package stage. Final DEV contest submission remains pending.
+
 A synthetic observation notebook that distinguishes an observed zero from a missing observation and compares completed same-lot replicates with matching protocol, criterion and conditions. Astro supplies the viewer; ordinary Sanity Studio Structure supplies the six-type authoring model.
 
 ## Current demonstration
