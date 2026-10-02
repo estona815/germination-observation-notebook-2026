@@ -1,0 +1,85 @@
+---
+import '../styles/app.css';
+const publicConfig={ projectId:import.meta.env.PUBLIC_SANITY_PROJECT_ID??'',dataset:import.meta.env.PUBLIC_SANITY_DATASET??'germination-demo' };
+---
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><meta name="description" content="A synthetic germination experiment notebook with explicit missing observations and compatible replicate comparisons."/><title>Germination notebook</title></head>
+<body>
+<main>
+  <header><div><h1>Germination notebook</h1><p>Synthetic observations. An unvalidated prototype, not a seed certification.</p></div><button id="refresh" type="button">Refresh source</button></header>
+  <p id="source-status" class="source" role="status" aria-live="polite">Loading source…</p>
+  <section class="workspace" aria-label="Experiment notebook">
+    <aside><h2>Test batches</h2><p class="hint">Select a replicate to inspect its recorded days.</p><div id="batch-list"></div></aside>
+    <section class="detail"><h2 id="batch-title">Observations</h2><p id="batch-meta"></p><p id="criterion" class="hint"></p><div id="batch-validity" role="status"></div><div id="timeline"></div>
+      <details open><summary>Try a local correction</summary><p class="hint">This trial stays in this tab and disappears when you refresh. The source records stay unchanged.</p>
+      <form id="correction"><div class="form-grid"><label>Observation day<select id="observation" required></select></label><label>State<select id="state"><option value="observed">Observed</option><option value="missing">Not observed</option></select></label><label>Cumulative count<input id="count" type="number" min="0" step="1" value="0" required/></label></div><label>Reason<textarea id="reason" rows="2" placeholder="Explain the fictional correction" required></textarea></label><button type="submit">Apply local trial</button><button type="button" id="reset" class="secondary">Reset local trials</button><p id="correction-status" role="status" aria-live="polite"></p></form>
+      </details><div id="revision-list"></div>
+    </section>
+  </section>
+  <section class="comparison"><h2>Compare experiments</h2><p>Same lot, protocol version, observation criterion, endpoint and declared conditions only. Counts describe these synthetic samples; they establish no causal benefit or statistical superiority.</p><div class="form-grid"><label>First batch<select id="left"></select></label><label>Second batch<select id="right"></select></label></div><div id="comparison-result" aria-live="polite"></div></section>
+  <footer><p>Dates use UTC calendar days. “Not observed” is never filled with zero. Completion is derived from all scheduled observations and the endpoint date.</p><p id="integration-note">These observation records are invented. No physical seed experiment was performed.</p></footer>
+</main>
+<script define:vars={{publicConfig}}>
+window.__PUBLIC_SOURCE_CONFIG__ = publicConfig;
+function showClientFailure(message) {
+  const status=document.getElementById('source-status');
+  if(status) status.textContent=`Notebook could not finish: ${String(message).slice(0,240)}. No remote save occurred.`;
+}
+window.addEventListener('error',event=>showClientFailure(event.message||'A client script failed to load.'),true);
+window.addEventListener('unhandledrejection',event=>showClientFailure(event.reason?.message||event.reason||'Client initialization failed.'));
+</script>
+<script>
+import {loadSource} from '../lib/source.mjs';
+import {evaluateBatch,compareBatches,correctLocally} from '../lib/domain.mjs';
+const $=id=>document.getElementById(id);
+let originals=[],batches=[],selected='',mode='fixture';
+const text=(tag,value,className='')=>{const el=document.createElement(tag);el.textContent=String(value);el.className=className;return el;};
+function option(value,label){const o=document.createElement('option');o.value=value;o.textContent=label;return o;}
+function current(){return batches.find(b=>b._id===selected);}
+function displayComparison(){
+ const a=batches.find(b=>b._id===$('left').value),b=batches.find(b=>b._id===$('right').value);
+ const root=$('comparison-result');root.replaceChildren();if(!a||!b)return;
+ const result=compareBatches(a,b);
+ if(!result.comparable){root.append(text('h3','Comparison withheld'),...result.reasons.map(r=>text('p',r,'warning')));return;}
+ root.append(text('h3','Compatible recorded replicates'));
+ const row=document.createElement('div');row.className='results';
+ for(const [batch,summary] of [[a,result.left],[b,result.right]]){const item=document.createElement('div');item.append(text('h4',batch.label),text('p',`${summary.finalCount} / ${batch.sampleSize} observed germinated`,'result-count'),text('p',`${(summary.proportion*100).toFixed(1)}% at day ${batch.protocol.finalDay}`));row.append(item);}
+ root.append(row,text('p','Descriptive comparison only. No winner, confidence estimate, or field-performance claim.','hint'));
+}
+function renderDetail(){
+ const batch=current();if(!batch)return;
+ const result=evaluateBatch(batch);
+ $('batch-title').textContent=`${batch.label} — observations`;
+ $('batch-meta').textContent=`${batch.cultivarLabel??'Unknown cultivar'} · ${batch.lotLabel??'Unknown lot'} · ${batch.sampleSize} samples · ${batch.protocol?.label??'Missing protocol'} v${batch.protocol?.version??'?'} · ${batch.conditions??'Unknown conditions'}`;
+ $('criterion').textContent=`Observation rule: ${batch.protocol?.criterion??'Unknown — comparison blocked'}`;
+ $('batch-validity').replaceChildren(text('p',!result.valid?'Invalid record — comparison blocked':result.complete?'Complete: every scheduled day was observed':`Incomplete: unobserved days ${result.unobserved.join(', ')||'or endpoint not reached'}`,!result.valid||!result.complete?'warning':'good'),...result.issues.map(i=>text('p',i,'warning')));
+ const table=document.createElement('table');table.innerHTML='<caption>UTC calendar observations</caption><thead><tr><th scope="col">Day</th><th scope="col">Date</th><th scope="col">Recorded count</th><th scope="col">Trace</th></tr></thead>';
+ const tbody=document.createElement('tbody');
+ for(const o of result.observations){const tr=document.createElement('tr');for(const value of [o.day,o.date,o.state==='missing'?'Not observed':`${o.count} / ${batch.sampleSize}`,o.amendment?o.amendment.localOnly?'Local trial':'Published revision':'Original'])tr.append(text('td',value));tbody.append(tr);}
+ table.append(tbody);$('timeline').replaceChildren(table);
+ $('observation').replaceChildren(...result.observations.map(o=>option(o._id,`Day ${o.day}`)));syncObservation();
+ $('revision-list').replaceChildren();if(batch.revisions?.length){$('revision-list').append(text('h3','Correction history'));for(const r of batch.revisions)$('revision-list').append(text('p',`${r.localOnly?'Local trial':'Published revision'}: ${r.previousState==='missing'?'Not observed':r.previousCount} → ${r.state==='missing'?'Not observed':r.count}. ${r.reason}`));}
+ displayComparison();
+}
+function syncObservation(){const b=current();if(!b)return;const o=evaluateBatch(b).observations.find(o=>o._id===$('observation').value);if(!o)return;$('state').value=o.state;$('count').value=o.count??'';$('count').disabled=o.state==='missing';$('count').required=o.state==='observed';}
+function renderList(){const list=$('batch-list');list.replaceChildren();for(const b of batches){const result=evaluateBatch(b);const button=document.createElement('button');button.type='button';button.className='batch';button.setAttribute('aria-pressed',String(b._id===selected));button.append(text('strong',b.label),text('span',`${b.lotLabel??'Unknown lot'} · ${!result.valid?'invalid':result.complete?'complete':'incomplete'}`));button.onclick=()=>{selected=b._id;$('correction-status').textContent='';renderList();renderDetail();};list.append(button);}}
+async function refresh(){
+ let sourceLoaded=false;
+ $('refresh').disabled=true;$('source-status').textContent='Loading source…';
+ try{const source=await loadSource(window.__PUBLIC_SOURCE_CONFIG__);sourceLoaded=true;mode=source.mode;originals=source.batches;batches=structuredClone(originals);selected=batches[0]._id;$('source-status').textContent=source.message;
+ $('left').replaceChildren(...batches.map(b=>option(b._id,b.label)));$('right').replaceChildren(...batches.map(b=>option(b._id,b.label)));$('right').selectedIndex=Math.min(1,batches.length-1);
+ $('correction-status').textContent='';renderList();renderDetail();
+ $('integration-note').textContent=mode==='fixture'?'These observation records are invented. No physical seed experiment was performed.':'Published source records are synthetic. Trial corrections stay in this tab; refresh reads the stored source.';
+ }catch(error){originals=[];batches=[];selected='';$('batch-list').replaceChildren();$('timeline').replaceChildren();$('batch-validity').replaceChildren();$('batch-meta').textContent='';$('criterion').textContent='';$('batch-title').textContent='Notebook unavailable';$('left').replaceChildren();$('right').replaceChildren();$('observation').replaceChildren();$('comparison-result').replaceChildren();$('revision-list').replaceChildren();$('source-status').textContent=`${sourceLoaded?'Notebook rendering':'Source'} failed: ${error.message}. No source data was changed.`;}
+ finally{$('refresh').disabled=false;}
+}
+$('refresh').onclick=refresh;
+$('left').onchange=displayComparison;$('right').onchange=displayComparison;
+$('observation').onchange=syncObservation;
+$('state').onchange=()=>{$('count').disabled=$('state').value==='missing';$('count').required=!$('count').disabled;};
+$('correction').onsubmit=event=>{event.preventDefault();try{const b=current();if(!b)throw new Error('Load a batch first.');const corrected=correctLocally(b,$('observation').value,$('state').value,Number($('count').value),$('reason').value);batches=batches.map(x=>x._id===b._id?corrected:x);renderList();renderDetail();$('reason').value='';$('correction-status').textContent='Local trial applied. The source dataset was not changed.';}catch(error){$('correction-status').textContent=error.message;}};
+$('reset').onclick=()=>{batches=structuredClone(originals);renderList();renderDetail();$('correction-status').textContent='Local trials reset. Source documents were not changed.';};
+await refresh();
+</script>
+</body></html>

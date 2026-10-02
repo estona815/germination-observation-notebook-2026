@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {parse,evaluate} from 'groq-js';
+import {documents} from '../src/data/fixtures.mjs';
+import {BATCH_QUERY,loadSource,publicConfig} from '../src/lib/source.mjs';
+import {evaluateBatch} from '../src/lib/domain.mjs';
+test('actual GROQ joins synthetic criterion/protocol, cultivar, lot and observations',async()=>{const tree=parse(BATCH_QUERY);const value=await evaluate(tree,{dataset:documents});const result=await value.get();assert.equal(result.length,5);const a=result.find(b=>b._id==='batch-a');assert.equal(a.lotId,'lot-a');assert.equal(a.cultivarId,'cultivar-a');assert.equal(a.protocol.version,'1');assert.match(a.protocol.criterion,/Synthetic definition/);assert.equal(a.observations.length,3);assert.equal(evaluateBatch(a).finalCount,16);});
+test('GROQ includes published correction chain and excludes drafts',async()=>{const extra=[...documents,{_id:'revision-1',_type:'observationRevision',_createdAt:'2026-10-02T01:00:00Z',observation:{_ref:'batch-a-day-7'},previousState:'observed',previousCount:16,state:'observed',count:17,reason:'Synthetic recount'},{...documents.find(d=>d._id==='batch-a'),_id:'drafts.batch-a'}];const result=await(await evaluate(parse(BATCH_QUERY),{dataset:extra})).get();assert.equal(result.length,5);assert.equal(evaluateBatch(result.find(b=>b._id==='batch-a')).finalCount,17);});
+test('fixture mode is explicitly labelled and needs no account or remote fetch',async()=>{const source=await loadSource();assert.equal(source.mode,'fixture');assert.match(source.message,/Synthetic local demo/);assert.match(source.message,/changes remain in this tab/);});
+test('public config accepts no token, malformed IDs fail before any request',()=>{const config=publicConfig('abcd1234','germination-demo');assert.equal('token' in config,false);assert.equal(config.useCdn,false);assert.throws(()=>publicConfig('https://attacker','data'));assert.throws(()=>publicConfig('abcd1234','../secret'));});

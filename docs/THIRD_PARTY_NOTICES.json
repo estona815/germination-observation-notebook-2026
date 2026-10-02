@@ -1,0 +1,61 @@
+{
+  "scope": "Exact distributed client chunk module closure plus Vite preload helper. No server or Studio build distributed.",
+  "notices": [
+    {
+      "package": "@sanity/client",
+      "version": "8.9.0",
+      "license": "MIT",
+      "notice": "third-party-licenses/sanity-client__8.9.0__LICENSE.txt",
+      "bytes": 1066,
+      "sha256": "96654880788193a7aee237786f058f19704018854164d9b2ce1fb8f25a6b6c8e"
+    },
+    {
+      "package": "eventsource",
+      "version": "5.1.2",
+      "license": "MIT",
+      "notice": "third-party-licenses/eventsource__5.1.2__LICENSE.txt",
+      "bytes": 1087,
+      "sha256": "f683a72ffe6a9675b5507af22fe0f448d8c8de3da1e14f139d370a7e6a54a23e"
+    },
+    {
+      "package": "eventsource-parser",
+      "version": "4.1.1",
+      "license": "MIT",
+      "notice": "third-party-licenses/eventsource-parser__4.1.1__LICENSE.txt",
+      "bytes": 1098,
+      "sha256": "835eb611a23301b27115ca1be9f754c876e643ceb7fe63049c6b50609a1cafeb"
+    },
+    {
+      "package": "get-it",
+      "version": "9.6.1",
+      "license": "MIT",
+      "notice": "third-party-licenses/get-it__9.6.1__LICENSE.txt",
+      "bytes": 1095,
+      "sha256": "71df20ce7d166d6be98da4a548fa1ef7479eadc0c32dd0d42aa7e299bc8f18be"
+    },
+    {
+      "package": "rxjs",
+      "version": "7.8.2",
+      "license": "Apache-2.0",
+      "notice": "third-party-licenses/rxjs__7.8.2__LICENSE_txt.txt",
+      "bytes": 11064,
+      "sha256": "81c407ac717813b0e3795402960e04003c7bba8ba59b621624707028531c9ade"
+    },
+    {
+      "package": "tslib",
+      "version": "2.8.1",
+      "license": "0BSD",
+      "notice": "third-party-licenses/tslib__2.8.1__LICENSE_txt.txt",
+      "bytes": 655,
+      "sha256": "210b19e543130388c68654b7497e967119ce17145f66ab7d85688fbd70f08751"
+    },
+    {
+      "package": "vite",
+      "version": "8.3.1",
+      "license": "MIT",
+      "notice": "third-party-licenses/vite__8.3.1__LICENSE_md.txt",
+      "bytes": 112425,
+      "sha256": "387dd7baa307083401a27c58c362c30832f5ba1dba84f10cc22c33401523f45c"
+    }
+  ]
+}

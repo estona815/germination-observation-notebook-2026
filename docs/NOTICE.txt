@@ -1,0 +1,1 @@
+This browser bundle includes @sanity/client 8.9.0, eventsource 5.1.2, eventsource-parser 4.1.1, get-it 9.6.1, rxjs 7.8.2, tslib 2.8.1, vite 8.3.1. Upstream terms and copyright notices are preserved in third-party-licenses/. Bundling and minification modify layout; original project code license status is documented in the source repository.
